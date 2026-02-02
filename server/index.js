@@ -438,3 +438,5 @@ app.post('/api/seed', (req, res) => {
 app.listen(port, () => {
     console.log(`Serveur Voxia prêt sur http://localhost:${port}`);
 });
+
+export default app;
