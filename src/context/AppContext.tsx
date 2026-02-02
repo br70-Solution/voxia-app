@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import type { Patient, Audiogram, HearingAid, PatientDevice, Appointment, Invoice, User, Expense, StockItem } from '../types';
 import * as mockData from '../data/mockData';
 
-const API_URL = import.meta.env.PROD
+const API_URL = (import.meta as any).env.PROD
   ? '/api'
   : 'http://localhost:3001/api';
 
@@ -75,6 +75,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
 
+  // Helper for faster failure
+  const fetchWithTimeout = async (url: string, options: any = {}, timeout = 3000) => {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    try {
+      const response = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(id);
+      return response;
+    } catch (err) {
+      clearTimeout(id);
+      throw err;
+    }
+  };
+
   const loadDemoData = () => {
     console.log('Mode Démo Activé');
     setIsDemoMode(true);
@@ -95,7 +109,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const endpoints = ['users', 'patients', 'audiograms', 'hearing-aids', 'patient-devices', 'appointments', 'invoices', 'expenses', 'stock-items'];
       const results = await Promise.all(
         endpoints.map(e =>
-          fetch(`${API_URL}/${e}`).then(r => {
+          fetchWithTimeout(`${API_URL}/${e}`).then(r => {
             if (!r.ok) throw new Error('API Error');
             return r.json();
           })
@@ -112,8 +126,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setExpenses(results[7]);
       setStockItems(results[8]);
       setIsLoading(false);
-    } catch (err) {
-      console.warn('Serveur non disponible, passage en mode démo.');
+    } catch (err: any) {
+      console.warn('Serveur non disponible, passage en mode démo:', err.message);
       loadDemoData();
     }
   };
@@ -148,18 +162,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const res = await fetch(`${API_URL}/login`, {
+      const res = await fetchWithTimeout(`${API_URL}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password: pass })
-      });
+      }, 4000);
+
       if (res.ok) {
         const user = await res.json();
         setCurrentUser(user);
         return true;
       }
-    } catch (err) {
-      // Fallback si le serveur plante pendant le login
+    } catch (err: any) {
+      console.warn('Erreur login API, essai MockData:', err.message);
       const user = mockData.users.find(u => u.email === email && u.password === pass);
       if (user) {
         setCurrentUser(user);

@@ -14,15 +14,16 @@ const Login: React.FC = () => {
     setError('');
     setIsLoading(true);
 
-    // Simulation d'un délai réseau pour l'effet
-    setTimeout(() => {
-      const success = login(email, password);
+    try {
+      const success = await login(email, password);
       if (!success) {
         setError('Email ou mot de passe incorrect');
         setIsLoading(false);
       }
-      // Si succès, le changement d'état user dans le contexte redirigera automatiquement
-    }, 800);
+    } catch (err) {
+      setError('Erreur de connexion au serveur');
+      setIsLoading(false);
+    }
   };
 
   return (
