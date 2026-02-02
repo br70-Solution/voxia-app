@@ -1,7 +1,9 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { Patient, Audiogram, HearingAid, PatientDevice, Appointment, Invoice, User, Expense, StockItem } from '../types';
 
-const API_URL = 'http://localhost:3001/api';
+const API_URL = import.meta.env.PROD
+  ? '/api'
+  : 'http://localhost:3001/api';
 
 interface AppContextType {
   currentUser: User | null;
